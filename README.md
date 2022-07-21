@@ -8,5 +8,5 @@ Quanto aos passos, basta na pasta onde estão os arquivos desse github rodar o c
 ```bash
 mvn package
 cd target
-java -jar alguma-analise-1.0-SNAPSHOT-jar-with-dependencies.jar \Caminho\Para\Entrada.txt \Caminho\Para\Saida.txt
+java -jar alguma-semantico-1.0-SNAPSHOT-jar-with-dependencies.jar \Caminho\Para\Entrada.txt \Caminho\Para\Saida.txt
 ```

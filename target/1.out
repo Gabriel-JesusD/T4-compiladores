@@ -1,0 +1,23 @@
+Linha 4: tamanho dessa desgrama 2 filho da ([140 124 265 108] ([172 140 124 265 108] registro ([190 172 140 124 265 108] ([142 190 172 140 124 265 108] nome [161 142 190 172 140 124 265 108]) , ([144 190 172 140 124 265 108] tipoVinho [161 144 190 172 140 124 265 108]) : ([151 190 172 140 124 265 108] ([173 151 190 172 140 124 265 108] ([185 173 151 190 172 140 124 265 108] ([178 185 173 151 190 172 140 124 265 108] literal))))) ([190 172 140 124 265 108] ([142 190 172 140 124 265 108] preco [161 142 190 172 140 124 265 108]) : ([151 190 172 140 124 265 108] ([173 151 190 172 140 124 265 108] ([185 173 151 190 172 140 124 265 108] ([178 185 173 151 190 172 140 124 265 108] real))))) fim_registro))
+Linha 5: identificador nome nao declarado
+Linha 6: identificador tipoVinho nao declarado
+Linha 7: identificador preco nao declarado
+Linha 10: identificador tVinho ja declarado anteriormente
+Linha 10: identificador vinho nao declarado
+Linha 10: identificador vinhoCaro nao declarado
+Linha 13: identificador vinhoCaro nao declarado
+Linha 16: identificador vinho nao declarado
+Linha 16: identificador vinho nao declarado
+Linha 16: identificador vinho nao declarado
+Linha 19: identificador vinho nao declarado
+Linha 19: identificador vinhoCaro nao declarado
+Linha 19: identificador vinho nao declarado
+Linha 20: atribuicao nao compativel para vinhoCaro
+Linha 20: identificador vinhoCaro nao declarado
+Linha 20: identificador vinho nao declarado
+Linha 22: identificador vinho nao declarado
+Linha 25: identificador vinhoCaro nao declarado
+Linha 28: identificador vinhoCaro nao declarado
+Linha 28: identificador vinhoCaro nao declarado
+Linha 28: identificador vinhocaro nao declarado
+Fim da compilacao

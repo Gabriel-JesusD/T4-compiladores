@@ -221,4 +221,26 @@ public class SemanticoUtils {
         }
         return type;
     }
+
+    public static Table.Tipos getTipo(String val){
+        Table.Tipos tipo = null;
+                switch(val) {
+                    case "literal": 
+                        tipo = Table.Tipos.CADEIA;
+                        break;
+                    case "inteiro": 
+                        tipo = Table.Tipos.INT;
+                        break;
+                    case "real": 
+                        tipo = Table.Tipos.REAL;
+                        break;
+                    case "logico": 
+                        tipo = Table.Tipos.LOGICO;
+                        break;
+                    default:
+                        break;
+                }
+        return tipo;
+    }
+
 }

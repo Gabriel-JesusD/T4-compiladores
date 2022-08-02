@@ -1,4 +1,4 @@
-// Generated from compiladores\t4\Alguma.g4 by ANTLR 4.7.2
+// Generated from compiladores/t4/Alguma.g4 by ANTLR 4.7.2
 package compiladores.t4;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 

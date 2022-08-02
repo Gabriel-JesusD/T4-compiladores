@@ -5,13 +5,11 @@ import java.util.List;
 
 import org.antlr.v4.runtime.Token;
 
-import compiladores.t4.AlgumaParser;
 import compiladores.t4.AlgumaParser.Exp_aritmeticaContext;
 import compiladores.t4.AlgumaParser.ExpressaoContext;
 import compiladores.t4.AlgumaParser.FatorContext;
 import compiladores.t4.AlgumaParser.Fator_logicoContext;
 import compiladores.t4.AlgumaParser.ParcelaContext;
-import compiladores.t4.AlgumaParser.Parcela_logicaContext;
 import compiladores.t4.AlgumaParser.TermoContext;
 import compiladores.t4.AlgumaParser.Termo_logicoContext;
 
@@ -20,7 +18,6 @@ public class SemanticoUtils {
     
     public static void adicionarErroSemantico(Token t, String mensagem) {
         int linha = t.getLine();
-        int coluna = t.getCharPositionInLine();
         errosSemanticos.add(String.format("Linha %d: %s", linha, mensagem));
     }
     

@@ -4,27 +4,21 @@ import java.util.ArrayList;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import com.ibm.icu.impl.Pair;
-
-import compiladores.t4.AlgumaBaseVisitor;
 import compiladores.t4.AlgumaParser.CmdAtribuicaoContext;
-import compiladores.t4.AlgumaParser.CmdLeiaContext;
 import compiladores.t4.AlgumaParser.Declaracao_constanteContext;
 import compiladores.t4.AlgumaParser.Declaracao_globalContext;
-import compiladores.t4.AlgumaParser.Declaracao_localContext;
 import compiladores.t4.AlgumaParser.Declaracao_tipoContext;
 import compiladores.t4.AlgumaParser.Declaracao_variavelContext;
-import compiladores.t4.AlgumaParser.Exp_aritmeticaContext;
 import compiladores.t4.AlgumaParser.IdentificadorContext;
 import compiladores.t4.AlgumaParser.ProgramaContext;
 import compiladores.t4.AlgumaParser.RegistroContext;
 import compiladores.t4.AlgumaParser.Tipo_basico_identContext;
 import compiladores.t4.AlgumaParser.VariavelContext;
+import compiladores.t4.Table.InSymbol;
 
 public class AlgumaSemantico extends AlgumaBaseVisitor {
     
     Escopo escopos = new Escopo();
-    RegTable nomeReg = new RegTable();
     @Override
     public Object visitPrograma(ProgramaContext ctx) {
         return super.visitPrograma(ctx);
@@ -43,7 +37,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
             Table.Tipos aux = SemanticoUtils.getTipo(ctx.tipo_basico().getText()) ;
             if(aux != null)
                 tipo = aux;
-            escopoAtual.insert(ctx.IDENT().getText(), tipo);
+            escopoAtual.insert(ctx.IDENT().getText(), tipo, Table.Structure.CONST);
         }
 
         return super.visitDeclaracao_constante(ctx);
@@ -58,43 +52,41 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         } else {
             Table.Tipos tipo = SemanticoUtils.getTipo(ctx.tipo().getText());
             if(tipo != null)
-                escopoAtual.insert(ctx.IDENT().getText(), tipo);
+                escopoAtual.insert(ctx.IDENT().getText(), tipo, Table.Structure.TIPO);
             else if(ctx.tipo().registro() != null){
                 ArrayList<Table.InSymbol> varReg = new ArrayList<>();
-                        for(VariavelContext va : ctx.tipo().registro().variavel()){
-                            Table.Tipos tipoReg =  SemanticoUtils.getTipo(va.tipo().getText());
-                            for(IdentificadorContext id2 : va.identificador()){
-                                varReg.add(escopoAtual.new InSymbol(id2.getText(), tipoReg));
-                            }
+                for(VariavelContext va : ctx.tipo().registro().variavel()){
+                    Table.Tipos tipoReg =  SemanticoUtils.getTipo(va.tipo().getText());
+                    for(IdentificadorContext id2 : va.identificador()){
+                        varReg.add(escopoAtual.new InSymbol(id2.getText(), tipoReg, Table.Structure.TIPO));
+                    }
 
-                        }
+                }
 
-                        if (escopoAtual.exists(ctx.IDENT().getText())) {
-                            SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + ctx.IDENT().getText()
-                                    + " ja declarado anteriormente");
-                        }
-                        else{
-                            escopoAtual.insert(ctx.IDENT().getText(), Table.Tipos.REG);
-                        }
+                if (escopoAtual.exists(ctx.IDENT().getText())) {
+                    SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + ctx.IDENT().getText()
+                            + " ja declarado anteriormente");
+                }
+                else{
+                    escopoAtual.insert(ctx.IDENT().getText(), Table.Tipos.REG, Table.Structure.TIPO);
+                }
 
-                        for(Table.InSymbol re : varReg){
-                            String nameVar = ctx.IDENT().getText() + '.' + re.name;
-                            if (escopoAtual.exists(nameVar)) {
-                                SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + nameVar
-                                        + " ja declarado anteriormente");
-                            }
-                            else if(escopoAtual.exists(re.name)) {
-                                SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + re.name
-                                        + " ja declarado anteriormente");
-                            }
-                            else{
-                                // SemanticoUtils.adicionarErroSemantico(id.start, "oi rs tamo adicionando " + re.name );
-                                escopoAtual.insert(re);
-                                escopoAtual.insert(nameVar, re.tipo);
-                            }
-                        }
+                for(Table.InSymbol re : varReg){
+                    String nameVar = ctx.IDENT().getText() + '.' + re.name;
+                    if (escopoAtual.exists(nameVar)) {
+                        SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + nameVar
+                                + " ja declarado anteriormente");
+                    }
+                    else{
+                        // SemanticoUtils.adicionarErroSemantico(id.start, "oi rs tamo adicionando " + re.name );
+                        escopoAtual.insert(re);
+                        escopoAtual.insert(ctx.IDENT().getText(), re);
+                    }
+                }
+                // escopoAtual.insert(ctx.IDENT().getText(), Table.Tipos.REG, Table.Structure.TIPO);
             }
-            escopoAtual.insert(ctx.IDENT().getText(), Table.Tipos.TIPO);
+            Table.Tipos t =  SemanticoUtils.getTipo(ctx.tipo().getText());
+            escopoAtual.insert(ctx.IDENT().getText(), t, Table.Structure.TIPO);
         }
         return super.visitDeclaracao_tipo(ctx);
     }
@@ -112,48 +104,73 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
     public Object visitDeclaracao_variavel(Declaracao_variavelContext ctx) {
         Table escopoAtual = escopos.getEscopo();
         for (IdentificadorContext id : ctx.variavel().identificador()) {
-            // SemanticoUtils.adicionarErroSemantico(id.start, "yeah " + id.getText());
-            if (escopoAtual.exists(id.getText())) {
-                SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + id.getText()
+            String nomeId = "";
+            int i = 0;
+            for(TerminalNode ident : id.IDENT()){
+                if(i++ > 0)
+                    nomeId += ".";
+                nomeId += ident.getText();
+            }
+            if (escopoAtual.exists(nomeId)) {
+                SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + nomeId
                         + " ja declarado anteriormente");
             } else {
                 Table.Tipos tipo = SemanticoUtils.getTipo(ctx.variavel().tipo().getText());
                 if(tipo != null)
-                    escopoAtual.insert(id.getText(), tipo);
+                    escopoAtual.insert(nomeId, tipo, Table.Structure.VAR);
                 else{
-                    //recursao para o insert
-                    
-                    if(ctx.variavel().tipo().registro() != null){
+                    TerminalNode identTipo =    ctx.variavel().tipo() != null
+                                                && ctx.variavel().tipo().tipo_estendido() != null 
+                                                && ctx.variavel().tipo().tipo_estendido().tipo_basico_ident() != null  
+                                                && ctx.variavel().tipo().tipo_estendido().tipo_basico_ident().IDENT() != null 
+                                                ? ctx.variavel().tipo().tipo_estendido().tipo_basico_ident().IDENT() : null;
+                    if(identTipo != null){
+                        ArrayList<Table.InSymbol> regVars = null;
+                        boolean found = false;
+                        for(Table t: escopos.getPilha()){
+                            if(!found){
+                                if(t.exists(identTipo.getText())){
+                                    regVars = t.getTypeProperties(identTipo.getText());
+                                    found = true;
+                                }
+                            }
+                        }
+                        if(escopoAtual.exists(nomeId)){
+                            SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + nomeId
+                                        + " ja declarado anteriormente");
+                        } else{
+                            escopoAtual.insert(nomeId, Table.Tipos.REG, Table.Structure.VAR);
+                            for(Table.InSymbol s: regVars){
+                                escopoAtual.insert(nomeId + "." + s.name, s.tipo, Table.Structure.VAR);
+                            }   
+                        }
+                    }
+                    else if(ctx.variavel().tipo().registro() != null){
                         ArrayList<Table.InSymbol> varReg = new ArrayList<>();
                         for(VariavelContext va : ctx.variavel().tipo().registro().variavel()){
                             Table.Tipos tipoReg =  SemanticoUtils.getTipo(va.tipo().getText());
                             for(IdentificadorContext id2 : va.identificador()){
-                                varReg.add(escopoAtual.new InSymbol(id2.getText(), tipoReg));
+                                varReg.add(escopoAtual.new InSymbol(id2.getText(), tipoReg, Table.Structure.VAR));
                             }
-
-                        }
-                        escopoAtual.insert(id.getText(), Table.Tipos.REG);
+                        }  
+                        escopoAtual.insert(nomeId, Table.Tipos.REG, Table.Structure.VAR);
 
                         for(Table.InSymbol re : varReg){
-                            String nameVar = id.getText() + '.' + re.name;
+                            String nameVar = nomeId + '.' + re.name;
                             if (escopoAtual.exists(nameVar)) {
                                 SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + nameVar
-                                        + " ja declarado anteriormente");
-                            }
-                            else if(escopoAtual.exists(re.name)) {
-                                SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + re.name
                                         + " ja declarado anteriormente");
                             }
                             else{
                                 // SemanticoUtils.adicionarErroSemantico(id.start, "oi rs tamo adicionando " + re.name );
                                 escopoAtual.insert(re);
-                                escopoAtual.insert(nameVar, re.tipo);
+                                escopoAtual.insert(nameVar, re.tipo, Table.Structure.VAR);
                             }
                         }
 
                     }
                     else{//tipo registro estendido
-                        escopoAtual.insert(id.getText(), Table.Tipos.INT);
+                        escopoAtual.insert(id.getText(), Table.Tipos.INT, Table.Structure.VAR);
                     }
                 }
             }
@@ -169,7 +186,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
             SemanticoUtils.adicionarErroSemantico(ctx.start, ctx.IDENT().getText()
                     + " ja declarado anteriormente");
         } else {
-            escopoAtual.insert(ctx.IDENT().getText(), Table.Tipos.TIPO);
+            escopoAtual.insert(ctx.IDENT().getText(), Table.Tipos.REG, Table.Structure.TIPO);
         }
         return super.visitDeclaracao_global(ctx);
     }
@@ -213,7 +230,14 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
     public Object visitCmdAtribuicao(CmdAtribuicaoContext ctx) {
         Table.Tipos tipoExpressao = SemanticoUtils.verificarTipo(escopos, ctx.expressao());
         boolean error = false;
-        String nomeVar = ctx.identificador().getText();
+        String pointerChar = ctx.getText().charAt(0) == '^' ? "^" : "";
+        String nomeVar = "";
+        int i = 0;
+        for(TerminalNode id : ctx.identificador().IDENT()){
+            if(i++ > 0)
+                nomeVar += ".";
+            nomeVar += id.getText();
+        }
         if (tipoExpressao != Table.Tipos.INVALIDO) {
             for(Table escopo : escopos.getPilha()){
                 if (escopo.exists(nomeVar))  {
@@ -229,8 +253,10 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
             error = true;
         }
 
-        if(error)
-            SemanticoUtils.adicionarErroSemantico(ctx.identificador().start, "atribuicao nao compativel para " + nomeVar );
+        if(error){
+            nomeVar = ctx.identificador().getText();
+            SemanticoUtils.adicionarErroSemantico(ctx.identificador().start, "atribuicao nao compativel para " + pointerChar + nomeVar );
+        }
 
         return super.visitCmdAtribuicao(ctx);
     }

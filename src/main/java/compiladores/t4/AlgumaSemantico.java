@@ -10,6 +10,7 @@ import compiladores.t4.AlgumaParser.Declaracao_globalContext;
 import compiladores.t4.AlgumaParser.Declaracao_tipoContext;
 import compiladores.t4.AlgumaParser.Declaracao_variavelContext;
 import compiladores.t4.AlgumaParser.IdentificadorContext;
+import compiladores.t4.AlgumaParser.ParametroContext;
 import compiladores.t4.AlgumaParser.ProgramaContext;
 import compiladores.t4.AlgumaParser.RegistroContext;
 import compiladores.t4.AlgumaParser.Tipo_basico_identContext;
@@ -99,6 +100,51 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         // SemanticoUtils.adicionarErroSemantico(ctx.start, "tamanho dessa desgrama " + ctx.variavel().size() + " filho da " + p);
         return super.visitRegistro(ctx);
     }
+
+    @Override
+    public Object visitParametro(ParametroContext ctx) {
+        // TODO Auto-generated method stub
+        Table escopoAtual = escopos.getEscopo();
+        for(IdentificadorContext id: ctx.identificador()){
+            String nomeId ="";
+            int i = 0;
+            for(TerminalNode ident : id.IDENT()){
+                if(i++ > 0)
+                    nomeId += ".";
+                nomeId += ident.getText();
+            }
+            TerminalNode identTipo =    ctx.tipo_estendido() != null 
+            && ctx.tipo_estendido().tipo_basico_ident() != null  
+            && ctx.tipo_estendido().tipo_basico_ident().IDENT() != null 
+            ? ctx.tipo_estendido().tipo_basico_ident().IDENT() : null;
+            if (identTipo != null) {
+                ArrayList<Table.InSymbol> regVars = null;
+                boolean found = false;
+                for (Table t : escopos.getPilha()) {
+                    if (!found) {
+                        if (t.exists(identTipo.getText())) {
+                            regVars = t.getTypeProperties(identTipo.getText());
+                            found = true;
+                        }
+                    }
+                }
+                if (escopoAtual.exists(nomeId)) {
+                    SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + nomeId
+                            + " ja declarado anteriormente");
+                } else {
+                    escopoAtual.insert(nomeId, Table.Tipos.REG, Table.Structure.VAR);
+                    for (Table.InSymbol s : regVars) {
+                        escopoAtual.insert(nomeId + "." + s.name, s.tipo, Table.Structure.VAR);
+                    }
+                }
+            }
+        }
+
+
+
+        return super.visitParametro(ctx);
+    }
+
 
     @Override
     public Object visitDeclaracao_variavel(Declaracao_variavelContext ctx) {

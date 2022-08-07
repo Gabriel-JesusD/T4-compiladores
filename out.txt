@@ -1,0 +1,24 @@
+Linha 8: identificador racional nao declarado
+Linha 10: identificador valor1 nao declarado
+Linha 10: identificador valor2 nao declarado
+Linha 10: identificador resto nao declarado
+Linha 13: identificador valor1 nao declarado
+Linha 13: identificador racional.numerador nao declarado
+Linha 14: identificador valor2 nao declarado
+Linha 14: identificador racional.denominador nao declarado
+Linha 16: identificador resto nao declarado
+Linha 16: identificador valor1 nao declarado
+Linha 16: identificador valor2 nao declarado
+Linha 17: identificador valor1 nao declarado
+Linha 17: identificador valor2 nao declarado
+Linha 18: identificador valor2 nao declarado
+Linha 18: identificador resto nao declarado
+Linha 19: identificador resto nao declarado
+Linha 22: identificador racional.numerador nao declarado
+Linha 22: identificador racional.numerador nao declarado
+Linha 22: identificador valor1 nao declarado
+Linha 23: identificador racional.denominador nao declarado
+Linha 23: identificador racional.denominador nao declarado
+Linha 23: identificador valor1 nao declarado
+Linha 29: identificador simplifiqueRacional ja declarado anteriormente
+Fim da compilacao

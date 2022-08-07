@@ -6,13 +6,13 @@ import java.util.List;
 public class Escopo {
     private LinkedList<Table> pilha; //empilhando tabelas
 
-    public Escopo(){
+    public Escopo(Table.Tipos returnType){
         pilha = new LinkedList<>();
-        create();
+        create(returnType);
     }
 
-    public void create(){
-        pilha.push(new Table());
+    public void create(Table.Tipos returnType){
+        pilha.push(new Table(returnType));
     }
 
     public Table getEscopo(){
@@ -27,4 +27,12 @@ public class Escopo {
         pilha.pop();
     }
 
+    public boolean identExists(String name){
+        for(Table escopo : pilha) {
+            if(!escopo.exists(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

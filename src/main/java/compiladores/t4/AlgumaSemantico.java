@@ -1,16 +1,22 @@
 package compiladores.t4;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import compiladores.t4.AlgumaParser.CmdAtribuicaoContext;
+import compiladores.t4.AlgumaParser.CmdCasoContext;
+import compiladores.t4.AlgumaParser.CmdChamadaContext;
+import compiladores.t4.AlgumaParser.CmdRetorneContext;
 import compiladores.t4.AlgumaParser.Declaracao_constanteContext;
 import compiladores.t4.AlgumaParser.Declaracao_globalContext;
 import compiladores.t4.AlgumaParser.Declaracao_tipoContext;
 import compiladores.t4.AlgumaParser.Declaracao_variavelContext;
 import compiladores.t4.AlgumaParser.IdentificadorContext;
 import compiladores.t4.AlgumaParser.ParametroContext;
+import compiladores.t4.AlgumaParser.ParametrosContext;
+import compiladores.t4.AlgumaParser.Parcela_unarioContext;
 import compiladores.t4.AlgumaParser.ProgramaContext;
 import compiladores.t4.AlgumaParser.RegistroContext;
 import compiladores.t4.AlgumaParser.Tipo_basico_identContext;
@@ -19,7 +25,7 @@ import compiladores.t4.Table.InSymbol;
 
 public class AlgumaSemantico extends AlgumaBaseVisitor {
     
-    Escopo escopos = new Escopo();
+    Escopo escopos = new Escopo(Table.Tipos.VOID);
     @Override
     public Object visitPrograma(ProgramaContext ctx) {
         return super.visitPrograma(ctx);
@@ -102,51 +108,6 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
     }
 
     @Override
-    public Object visitParametro(ParametroContext ctx) {
-        // TODO Auto-generated method stub
-        Table escopoAtual = escopos.getEscopo();
-        for(IdentificadorContext id: ctx.identificador()){
-            String nomeId ="";
-            int i = 0;
-            for(TerminalNode ident : id.IDENT()){
-                if(i++ > 0)
-                    nomeId += ".";
-                nomeId += ident.getText();
-            }
-            TerminalNode identTipo =    ctx.tipo_estendido() != null 
-            && ctx.tipo_estendido().tipo_basico_ident() != null  
-            && ctx.tipo_estendido().tipo_basico_ident().IDENT() != null 
-            ? ctx.tipo_estendido().tipo_basico_ident().IDENT() : null;
-            if (identTipo != null) {
-                ArrayList<Table.InSymbol> regVars = null;
-                boolean found = false;
-                for (Table t : escopos.getPilha()) {
-                    if (!found) {
-                        if (t.exists(identTipo.getText())) {
-                            regVars = t.getTypeProperties(identTipo.getText());
-                            found = true;
-                        }
-                    }
-                }
-                if (escopoAtual.exists(nomeId)) {
-                    SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + nomeId
-                            + " ja declarado anteriormente");
-                } else {
-                    escopoAtual.insert(nomeId, Table.Tipos.REG, Table.Structure.VAR);
-                    for (Table.InSymbol s : regVars) {
-                        escopoAtual.insert(nomeId + "." + s.name, s.tipo, Table.Structure.VAR);
-                    }
-                }
-            }
-        }
-
-
-
-        return super.visitParametro(ctx);
-    }
-
-
-    @Override
     public Object visitDeclaracao_variavel(Declaracao_variavelContext ctx) {
         Table escopoAtual = escopos.getEscopo();
         for (IdentificadorContext id : ctx.variavel().identificador()) {
@@ -227,25 +188,98 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
 
     @Override
     public Object visitDeclaracao_global(Declaracao_globalContext ctx) {
-         Table escopoAtual = escopos.getEscopo();
+        Table escopoAtual = escopos.getEscopo();
+        Object ret;
         if (escopoAtual.exists(ctx.IDENT().getText())) {
             SemanticoUtils.adicionarErroSemantico(ctx.start, ctx.IDENT().getText()
                     + " ja declarado anteriormente");
+            ret = super.visitDeclaracao_global(ctx);
         } else {
-            escopoAtual.insert(ctx.IDENT().getText(), Table.Tipos.REG, Table.Structure.TIPO);
+            Table.Tipos returnTypeFunc = Table.Tipos.VOID;
+            if(ctx.getText().startsWith("funcao")){
+                returnTypeFunc = SemanticoUtils.getTipo(ctx.tipo_estendido().getText());
+                escopoAtual.insert(ctx.IDENT().getText(), returnTypeFunc, Table.Structure.FUNC);
+            }
+            else{
+                returnTypeFunc = Table.Tipos.VOID;
+                escopoAtual.insert(ctx.IDENT().getText(), returnTypeFunc, Table.Structure.PROC);
+            }
+            escopos.create(returnTypeFunc);
+            Table escopoAntigo = escopoAtual;
+            escopoAtual = escopos.getEscopo();
+            if(ctx.parametros() != null){
+                for(ParametroContext p : ctx.parametros().parametro()){
+                    for (IdentificadorContext id : p.identificador()) {
+                        String nomeId = "";
+                        int i = 0;
+                        for(TerminalNode ident : id.IDENT()){
+                            if(i++ > 0)
+                                nomeId += ".";
+                            nomeId += ident.getText();
+                        }
+                        if (escopoAtual.exists(nomeId)) {
+                            SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + nomeId
+                                    + " ja declarado anteriormente");
+                        } else {
+                            Table.Tipos tipo = SemanticoUtils.getTipo(p.tipo_estendido().getText());
+                            if(tipo != null){
+                                InSymbol in = escopoAtual.new InSymbol(nomeId, tipo, Table.Structure.VAR);
+                                escopoAtual.insert(in);
+                                escopoAntigo.insert(ctx.IDENT().getText(), in);
+                            }
+                            else{
+                                TerminalNode identTipo =    p.tipo_estendido().tipo_basico_ident() != null  
+                                                            && p.tipo_estendido().tipo_basico_ident().IDENT() != null 
+                                                            ? p.tipo_estendido().tipo_basico_ident().IDENT() : null;
+                                if(identTipo != null){
+                                    ArrayList<Table.InSymbol> regVars = null;
+                                    boolean found = false;
+                                    for(Table t: escopos.getPilha()){
+                                        if(!found){
+                                            if(t.exists(identTipo.getText())){
+                                                regVars = t.getTypeProperties(identTipo.getText());
+                                                found = true;
+                                            }
+                                        }
+                                    }
+                                    if(escopoAtual.exists(nomeId)){
+                                        SemanticoUtils.adicionarErroSemantico(id.start, "identificador " + nomeId
+                                                    + " ja declarado anteriormente");
+                                    } else{
+                                        InSymbol in = escopoAtual.new InSymbol(nomeId, Table.Tipos.REG, Table.Structure.VAR);
+                                        escopoAtual.insert(in);
+                                        escopoAntigo.insert(ctx.IDENT().getText(), in);
+
+                                        for(Table.InSymbol s: regVars){
+                                            escopoAtual.insert(nomeId + "." + s.name, s.tipo, Table.Structure.VAR);
+                                        }   
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ret = super.visitDeclaracao_global(ctx);
+            escopos.dropEscopo();
+
         }
-        return super.visitDeclaracao_global(ctx);
+        return ret;
     }
 
 
     @Override
     public Object visitTipo_basico_ident(Tipo_basico_identContext ctx) {
         if(ctx.IDENT() != null){
+            boolean exists = false;
             for(Table escopo : escopos.getPilha()) {
-                if(!escopo.exists(ctx.IDENT().getText())) {
-                    SemanticoUtils.adicionarErroSemantico(ctx.start, "tipo " + ctx.IDENT().getText()
-                            + " nao declarado");
+                if(escopo.exists(ctx.IDENT().getText())) {
+                    exists = true;
                 }
+            }
+            if(!exists){
+                SemanticoUtils.adicionarErroSemantico(ctx.start, "tipo " + ctx.IDENT().getText()
+                            + " nao declarado");
             }
         }
         return super.visitTipo_basico_ident(ctx);
@@ -260,15 +294,15 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
                 nomeVar += ".";
             nomeVar += id.getText();
         }
+        boolean erro = true;
         for(Table escopo : escopos.getPilha()) {
-            
-            // if(!escopo.exists(ctx.IDENT(0).getText())) {
-            if(!escopo.exists(nomeVar)) {
-                // SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + ctx.IDENT(0).getText()
-                        // + " nao declarado");
-                SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + nomeVar + " nao declarado");
+
+            if(escopo.exists(nomeVar)) {
+                erro = false;
             }
         }
+        if(erro)
+            SemanticoUtils.adicionarErroSemantico(ctx.start, "identificador " + nomeVar + " nao declarado");
         return super.visitIdentificador(ctx);
     }
 
@@ -285,8 +319,10 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
             nomeVar += id.getText();
         }
         if (tipoExpressao != Table.Tipos.INVALIDO) {
+            boolean found = false;
             for(Table escopo : escopos.getPilha()){
-                if (escopo.exists(nomeVar))  {
+                if (escopo.exists(nomeVar) && !found)  {
+                    found = true;
                     Table.Tipos tipoVariavel = SemanticoUtils.verificarTipo(escopos, nomeVar);
                     Boolean varNumeric = tipoVariavel == Table.Tipos.REAL || tipoVariavel == Table.Tipos.INT;
                     Boolean expNumeric = tipoExpressao == Table.Tipos.REAL || tipoExpressao == Table.Tipos.INT;
@@ -307,4 +343,37 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         return super.visitCmdAtribuicao(ctx);
     }
 
+    @Override
+    public Object visitCmdRetorne(CmdRetorneContext ctx) {
+        if(escopos.getEscopo().returnType == Table.Tipos.VOID){
+            SemanticoUtils.adicionarErroSemantico(ctx.start, "comando retorne nao permitido nesse escopo");
+        } 
+        return super.visitCmdRetorne(ctx);
+    }
+
+    @Override
+    public Object visitParcela_unario(Parcela_unarioContext ctx) {
+        Table escopoAtual = escopos.getEscopo();
+        if(ctx.IDENT() != null){
+            String name = ctx.IDENT().getText();
+            if(escopoAtual.exists(ctx.IDENT().getText())){
+                List<InSymbol> params = escopoAtual.getTypeProperties(name);
+                boolean error = false;
+                if(params.size() != ctx.expressao().size()){
+                    error = true;
+                } else {
+                    for(int i = 0; i < params.size(); i++){
+                        if(params.get(i).tipo != SemanticoUtils.verificarTipo(escopos, ctx.expressao().get(i))){
+                            error = true;
+                        }
+                    }
+                }
+                if(error){
+                    SemanticoUtils.adicionarErroSemantico(ctx.start, "incompatibilidade de parametros na chamada de " + name);
+                }
+            }
+        }
+
+        return super.visitParcela_unario(ctx);
+    }
 }

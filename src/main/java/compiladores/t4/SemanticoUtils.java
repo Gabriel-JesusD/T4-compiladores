@@ -186,17 +186,7 @@ public class SemanticoUtils {
             return verificarTipo(escopos, ctx.identificador());
         }
         if (ctx.IDENT() != null) {
-            Table.Tipos ret = null;
-            ret = verificarTipo(escopos, ctx.IDENT().getText());
-            for (ExpressaoContext fa : ctx.expressao()) {
-                Table.Tipos aux = verificarTipo(escopos, fa);
-                if (ret == null) {
-                    ret = aux;
-                } else if (ret != aux && aux != Table.Tipos.INVALIDO) {
-                    ret = Table.Tipos.INVALIDO;
-                }
-            }
-            return ret;
+            return verificarTipo(escopos, ctx.IDENT().getText());
         } else {
             Table.Tipos ret = null;
             for (ExpressaoContext fa : ctx.expressao()) {
@@ -212,10 +202,13 @@ public class SemanticoUtils {
     }
     
     public static Table.Tipos verificarTipo(Escopo escopos, String nomeVar) {
-        Table.Tipos type = null;
+        Table.Tipos type = Table.Tipos.INVALIDO;
         for(Table tabela : escopos.getPilha()){
-            type = tabela.verify(nomeVar);
+            if(tabela.exists(nomeVar)){
+                return tabela.verify(nomeVar);
+            }
         }
+
         return type;
     }
 

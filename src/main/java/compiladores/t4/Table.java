@@ -5,9 +5,9 @@ import java.util.Enumeration;
 import java.util.HashMap;
 
 public class Table {
-
+    public Table.Tipos returnType;
     public enum Tipos{
-        INT, REAL, CADEIA, LOGICO, INVALIDO, REG
+        INT, REAL, CADEIA, LOGICO, INVALIDO, REG, VOID
     }
 
     public enum Structure{
@@ -30,9 +30,10 @@ public class Table {
     private HashMap<String, InSymbol> myTable;
     private HashMap<String, ArrayList<InSymbol>> typeTable;
 
-    public Table(){
+    public Table(Table.Tipos returnType){
         myTable = new HashMap<>();
         typeTable = new HashMap<>();
+        this.returnType = returnType;
     }
 
     public void insert(String name, Tipos tipo, Structure structure){

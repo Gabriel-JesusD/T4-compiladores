@@ -33,6 +33,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
 
 
 
+    //ao declarar constante, apenas temos de garantir que o nome dela é novo
     @Override
     public Object visitDeclaracao_constante(Declaracao_constanteContext ctx) {
         Table escopoAtual = escopos.getEscopo();
@@ -50,6 +51,9 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         return super.visitDeclaracao_constante(ctx);
     }
 
+    //ao declarar um tipo, esse pode ser um registro, devemos registrar entao, todos as variaveis dentro do mesmo
+    //associandoas a ele, nesse caso o nome da variavel que vai ser um tipo, tem de ser registrada para ser utilizada
+    //posteriormente, e o que tiver dentro do registro, é armazenado em uma tabela para tipos.
     @Override
     public Object visitDeclaracao_tipo(Declaracao_tipoContext ctx) {
         Table escopoAtual = escopos.getEscopo();
@@ -98,15 +102,9 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         return super.visitDeclaracao_tipo(ctx);
     }
 
-    @Override
-    public Object visitRegistro(RegistroContext ctx) {
-        // TODO Auto-generated method stub
-        // String p = ctx.parent.getText();
-        // p = ctx.parent.toStringTree();
-        // SemanticoUtils.adicionarErroSemantico(ctx.start, "tamanho dessa desgrama " + ctx.variavel().size() + " filho da " + p);
-        return super.visitRegistro(ctx);
-    }
-
+    //ao declarar variavel, verificamos se o identificador é novo, caso positivo podemos salvar
+    //também devemos verificar caso seja um tipo registro para variavel, temos de associar essa
+    //as variaveis do registro.
     @Override
     public Object visitDeclaracao_variavel(Declaracao_variavelContext ctx) {
         Table escopoAtual = escopos.getEscopo();
@@ -186,6 +184,9 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
     }
 
 
+    //Para casos de função temos de declarar elas
+    //tratando o fator de que o nome é único e suas variaveis também devem ter nome único,
+    //para isso criamos um escopo para a função e tratamos as variaveis sendo criadas lá, para não interferirem em outros escopos
     @Override
     public Object visitDeclaracao_global(Declaracao_globalContext ctx) {
         Table escopoAtual = escopos.getEscopo();
@@ -268,6 +269,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
     }
 
 
+    //verifica se o tipo é basico ou um nome de variavel, o importante é que caso seja nome ele deve existir
     @Override
     public Object visitTipo_basico_ident(Tipo_basico_identContext ctx) {
         if(ctx.IDENT() != null){
@@ -285,6 +287,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         return super.visitTipo_basico_ident(ctx);
     }
 
+    //verifica se o identificador existe na tabela, seu nome é composto como exemplo NOME1.NOME2.NOME....
     @Override
     public Object visitIdentificador(IdentificadorContext ctx) {
         String nomeVar = "";
@@ -306,6 +309,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         return super.visitIdentificador(ctx);
     }
 
+    //para casos de atribuição verifica-se se os tipos são compativeis
     @Override
     public Object visitCmdAtribuicao(CmdAtribuicaoContext ctx) {
         Table.Tipos tipoExpressao = SemanticoUtils.verificarTipo(escopos, ctx.expressao());
@@ -343,6 +347,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         return super.visitCmdAtribuicao(ctx);
     }
 
+    //o comando de retorno deve ser diferente do tipo void que nao retorna nada
     @Override
     public Object visitCmdRetorne(CmdRetorneContext ctx) {
         if(escopos.getEscopo().returnType == Table.Tipos.VOID){
@@ -351,6 +356,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
         return super.visitCmdRetorne(ctx);
     }
 
+    //para parcela unarios, verificamos se a variavel existe
     @Override
     public Object visitParcela_unario(Parcela_unarioContext ctx) {
         Table escopoAtual = escopos.getEscopo();

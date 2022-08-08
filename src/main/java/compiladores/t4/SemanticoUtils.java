@@ -16,11 +16,12 @@ import compiladores.t4.AlgumaParser.Termo_logicoContext;
 public class SemanticoUtils {
     public static List<String> errosSemanticos = new ArrayList<>();
     
-    public static void adicionarErroSemantico(Token t, String mensagem) {
+    public static void adicionarErroSemantico(Token t, String mensagem) {//adiciona um erro para a saida
         int linha = t.getLine();
         errosSemanticos.add(String.format("Linha %d: %s", linha, mensagem));
     }
     
+    //verifica tipo de uma expressao, todos os termos devem ser do mesmo tipo
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.ExpressaoContext ctx) {
         Table.Tipos ret = null;
         for (Termo_logicoContext ta : ctx.termo_logico()) {
@@ -31,11 +32,11 @@ public class SemanticoUtils {
                 ret = Table.Tipos.INVALIDO;
             }
         }
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "9" +ctx.getText() + ret);
         return ret;
     }
 
-    public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.Termo_logicoContext ctx) {
+    //verifica tipo de um termo logico, todos os fatores devem ser do mesmo tipo
+    public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.Termo_logicoContext ctx) {//
         Table.Tipos ret = null;
         for (Fator_logicoContext ta : ctx.fator_logico()) {
             Table.Tipos aux = verificarTipo(escopos, ta);
@@ -46,10 +47,10 @@ public class SemanticoUtils {
             }
         }
 
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "8" +ctx.getText() + ret);
         return ret;
     }
 
+    //para verificar um fator, como ele e constituido por uma parcela, ele simplesmente verifica esta.
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.Fator_logicoContext ctx) {
         //SemanticoUtils.adicionarErroSemantico(ctx.start, ctx.getText() + verificarTipo(escopos, ctx.parcela_logica()));
         return verificarTipo(escopos, ctx.parcela_logica());
@@ -63,16 +64,16 @@ public class SemanticoUtils {
             ret = Table.Tipos.LOGICO;
         }
 
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "7" +ctx.getText() + ret);
         return ret;
     }
 
+    //verifica o tipo da expressao relacional, que é constituida por expressoes aritmeticas
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.Exp_relacionalContext ctx) {
         Table.Tipos ret = null;
         if(ctx.op_relacional() != null){
             for (Exp_aritmeticaContext ta : ctx.exp_aritmetica()) {
                 Table.Tipos aux = verificarTipo(escopos, ta);
-                Boolean auxNumeric = aux == Table.Tipos.REAL || aux == Table.Tipos.INT;
+                Boolean auxNumeric = aux == Table.Tipos.REAL || aux == Table.Tipos.INT; //casos numericos inteiros e reais se correlacionam
                 Boolean retNumeric = ret == Table.Tipos.REAL || ret == Table.Tipos.INT;
                 if (ret == null) {
                     ret = aux;
@@ -87,10 +88,10 @@ public class SemanticoUtils {
             ret = verificarTipo(escopos, ctx.exp_aritmetica(0));
         }
 
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "6" +ctx.getText() + ret);
         return ret;
     }
 
+    //verifica expressao aritmetica, verificando cada termo se são compativeis (mesmo tipo)
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.Exp_aritmeticaContext ctx) {
         Table.Tipos ret = null;
         for (TermoContext ta : ctx.termo()) {
@@ -102,16 +103,16 @@ public class SemanticoUtils {
             }
         }
 
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "5" +ctx.getText() + ret);
         return ret;
     }
 
+    //verifica um termo, composto por fatores que devem ser compativeis.
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.TermoContext ctx) {
         Table.Tipos ret = null;
 
         for (FatorContext fa : ctx.fator()) {
             Table.Tipos aux = verificarTipo(escopos, fa);
-            Boolean auxNumeric = aux == Table.Tipos.REAL || aux == Table.Tipos.INT;
+            Boolean auxNumeric = aux == Table.Tipos.REAL || aux == Table.Tipos.INT; //casos numericos inteiros e reais se correlacionam
             Boolean retNumeric = ret == Table.Tipos.REAL || ret == Table.Tipos.INT;
             if (ret == null) {
                 ret = aux;
@@ -119,9 +120,10 @@ public class SemanticoUtils {
                 ret = Table.Tipos.INVALIDO;
             }
         }
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "4" +ctx.getText() + ret);
         return ret;
     }
+
+    //para cada fator devemos verificar se as parcelas que os compoem são compativeis.
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.FatorContext ctx) {
         Table.Tipos ret = null;
 
@@ -133,9 +135,11 @@ public class SemanticoUtils {
                 ret = Table.Tipos.INVALIDO;
             }
         }
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "3" +ctx.getText() + ret);
         return ret;
     }
+
+    //para caso de parcelas vamos verificar dependendo de seu tipo, pode ser unaria ou nao, um if para verificar o tipo em cada
+    //caso foi utilizado.
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.ParcelaContext ctx) {
         Table.Tipos ret = Table.Tipos.INVALIDO;
 
@@ -143,13 +147,12 @@ public class SemanticoUtils {
             ret = verificarTipo(escopos, ctx.parcela_nao_unario());
         }
         else {
-            //SemanticoUtils.adicionarErroSemantico(ctx.start, "ta aq: " + ctx.getText() + verificarTipo(escopos, ctx.parcela_unario()));
             ret = verificarTipo(escopos, ctx.parcela_unario());
         }
-        //SemanticoUtils.adicionarErroSemantico(ctx.start, "2" + ctx.getText() + ret);
         return ret;
     }
 
+    //na parcela nao unaria, temos um identificador ou uma cadeia, no caso de identificador temos de verificar seu tipo
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.Parcela_nao_unarioContext ctx) {
         if (ctx.identificador() != null) {
             return verificarTipo(escopos, ctx.identificador());
@@ -157,7 +160,9 @@ public class SemanticoUtils {
         return Table.Tipos.CADEIA;
     }
 
-    public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.IdentificadorContext ctx) {//kk suspeitos
+    //para verificar um identificador, verificamos seu nome completo, composto por exemplo NOME1.NOME2.NOME...
+    //tendo o nome pronto, vemos se esse existe em algum escopo.
+    public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.IdentificadorContext ctx) {
         String nomeVar = "";
         Table.Tipos ret = Table.Tipos.INVALIDO;
         for(int i = 0; i < ctx.IDENT().size(); i++){
@@ -171,10 +176,10 @@ public class SemanticoUtils {
                 ret = verificarTipo(escopos, nomeVar);
             }
         }
-        System.out.println(nomeVar);
         return ret;
     }
     
+    //Para parcelas unarias, vemos qual seu tipo, ou seja o que esta escrito e o retornamos
     public static Table.Tipos verificarTipo(Escopo escopos, AlgumaParser.Parcela_unarioContext ctx) {
         if (ctx.NUM_INT() != null) {
             return Table.Tipos.INT;
@@ -201,6 +206,7 @@ public class SemanticoUtils {
         }
     }
     
+    //No caso de receber so uma string, vemos se ela existe, para descobrir se o nome da variavel foi criado ao ser utilizado.
     public static Table.Tipos verificarTipo(Escopo escopos, String nomeVar) {
         Table.Tipos type = Table.Tipos.INVALIDO;
         for(Table tabela : escopos.getPilha()){
@@ -212,6 +218,7 @@ public class SemanticoUtils {
         return type;
     }
 
+    //modularizacao da função getTipo, relacionando a string lida a palavra reservada.
     public static Table.Tipos getTipo(String val){
         Table.Tipos tipo = null;
                 switch(val) {
